@@ -1,18 +1,4 @@
-import { IO } from "../flatfolder/io.js";
-import { M } from "../flatfolder/math.js";
-import { X } from "../flatfolder/conversion.js";
-import { SVG } from "../flatfolder/svg.js";
-import { NOTE } from "../flatfolder/note.js";
-import { N } from "./nath.js";
-import { Y } from "./y.js";
-import { PRJ } from "./project.js";
-import { PAGE } from "./page.js";
-import { DIST } from "../distortionfolder/distortion.js";
-import { SVG3 } from "./svg.js";
-import { DRAW } from "./draw.js";
-
-
-export const IO3 = {    // INPUT-OUTPUT
+export const IO3 = {
     write: (svg_id, name, ext, idx = undefined) => {
         if (ext == "png") {
             return IO3.write_pngs(svg_id, name, idx);
@@ -29,7 +15,6 @@ export const IO3 = {    // INPUT-OUTPUT
         if (ext == "cell_svg") {
             return IO3.write_svgs(name, idx, true);
         }
-
         if (ext == "cp") {
             return IO3.write_cps(name, idx);
         }
@@ -53,11 +38,8 @@ export const IO3 = {    // INPUT-OUTPUT
         }
 
         const zip = new JSZip();
-
         for (const [idx, step] of PRJ.steps.entries()) {
-            if (idx == 0) {
-                continue;
-            }
+            if (idx == 0) continue;
             const FOLD = step.fold_cp;
             const cp = Y.FOLD_2_CP(FOLD);
             const num = IO3.format_num(idx);
@@ -66,7 +48,6 @@ export const IO3 = {    // INPUT-OUTPUT
         zip.generateAsync({ type: "blob" }).then(function (content) {
             saveAs(content, name + ".zip");
         });
-
     },
 
     write_svgs: (name, idx = undefined, to_cell = false) => {
@@ -74,15 +55,15 @@ export const IO3 = {    // INPUT-OUTPUT
         if (idx) {
             const book = document.createElement("svg");
             book.setAttribute("xmlns", SVG.NS);
-            book.appendChild(defs.cloneNode(true));
-            const [s, b] = [SVG.SCALE, SVG3.MARGIN]
+            const [s, b] = [SVG.SCALE, SVG3.MARGIN];
             book.setAttribute("width", s);
             book.setAttribute("height", s);
             book.setAttribute("x", 0);
             book.setAttribute("y", 0);
             book.setAttribute("viewBox", [-b, -b, s + 2 * b, s + 2 * b].join(" "));
-
-            PAGE.draw_step(book, PRJ.steps[idx], idx, to_cell, false)
+            // FIX: only one clone appended, no duplicate IDs
+            book.appendChild(defs.cloneNode(true));
+            PAGE.draw_step(book, PRJ.steps[idx], idx, to_cell, false);
             IO3.write_svg(book, name, idx);
             return;
         }
@@ -106,16 +87,16 @@ export const IO3 = {    // INPUT-OUTPUT
         }
         IO3.write_svg(book, name, 0);
     },
+
     write_svg: (svg, name, idx) => {
-        const img = new Blob([svg.outerHTML], {
-            type: "image/svg+xml"
-        });
+        const img = new Blob([svg.outerHTML], { type: "image/svg+xml" });
         const link = document.createElement("a");
         const num = IO3.format_num(idx);
         link.setAttribute("download", `${name}_${num}.svg`);
         link.setAttribute("href", window.URL.createObjectURL(img));
         link.dispatchEvent(new MouseEvent("click"));
     },
+
     write_pngs: (svg_id, name, idx = undefined) => {
         if (idx) {
             PRJ.restore(idx);
@@ -127,11 +108,9 @@ export const IO3 = {    // INPUT-OUTPUT
         }
         for (let j = 0; j < PAGE.get_pages(PRJ.steps); j++) {
             PAGE.current_idx = j;
-
             const svg_page = SVG.clear("png");
             const defs = document.getElementById("defs");
             const svg = PAGE.redraw(svg_page, PRJ.steps, defs);
-
             const width = PAGE.dim.width;
             const height = PAGE.dim.height;
             const dim = { width, height };
@@ -139,6 +118,7 @@ export const IO3 = {    // INPUT-OUTPUT
         }
         document.getElementById("png").setAttribute("style", "display:none");
     },
+
     write_png_steps: async (name) => {
         const zip = new JSZip();
         for (const [idx, step] of PRJ.steps.entries()) {
@@ -157,6 +137,7 @@ export const IO3 = {    // INPUT-OUTPUT
                 saveAs(content, name + ".zip");
             });
     },
+
     write_png_nonscale: async (name) => {
         const zip = new JSZip();
         for (const [idx, step] of PRJ.steps.entries()) {
@@ -174,9 +155,9 @@ export const IO3 = {    // INPUT-OUTPUT
                 saveAs(content, name + ".zip");
             });
     },
+
     get_png_blob: (svg, dim) => {
         const svgData = new XMLSerializer().serializeToString(svg);
-
         return new Promise((resolve, reject) => {
             var image = new Image;
             image.onload = function () {
@@ -240,6 +221,7 @@ export const IO3 = {    // INPUT-OUTPUT
         button.setAttribute("type", "button");
         button.click();
     },
+
     load: (data_) => {
         NOTE.log(`   - ${data_.length} steps found:`)
         if (data_[0].color) {
@@ -270,6 +252,7 @@ export const IO3 = {    // INPUT-OUTPUT
         }
         return data_;
     },
+
     normalize_L: (L) => {
         const P = [];
         L.map((l) => {
@@ -277,7 +260,6 @@ export const IO3 = {    // INPUT-OUTPUT
             P.push(l[1]);
         });
         const Q = M.normalize_points(P);
-
         return L.map((_, l_i) => {
             return [Q[2 * l_i], Q[2 * l_i + 1], L[l_i][2]];
         });
@@ -318,11 +300,9 @@ export const IO3 = {    // INPUT-OUTPUT
         [V, EV, EL,] = X.L_2_V_EV_EL(L);
         EA = IO3.EL_L_2_EA(EL, L);
 
-
         [VV, FV] = X.V_EV_2_VV_FV(V, EV);
 
         [EF, FE] = X.EV_FV_2_EF_FE(EV, FV);     // remove holes
-
 
         if (FV.length > 1) {
             FV = FV.filter((F, i) => !FE[i].every(e => (EA[e] == "B")));
@@ -338,15 +318,13 @@ export const IO3 = {    // INPUT-OUTPUT
 
         UV = [];
         for (const [ei_, a_] of UA_.entries()) {
-            if (a_ != "F") {
-                continue;
-            }
+            if (a_ != "F") continue;
             const [pi_, qi_] = UV_[ei_];
             const [p, q] = [V_[pi_], V_[qi_]];
             let pi = -1;
             for (const [vi, v] of V.entries()) {
                 if (M.distsq(p, v) < 1e-16) {
-                    pi = vi
+                    pi = vi;
                     break;
                 }
             }
@@ -357,7 +335,7 @@ export const IO3 = {    // INPUT-OUTPUT
             let qi = -1;
             for (const [vi, v] of V.entries()) {
                 if (M.distsq(q, v) < 1e-16) {
-                    qi = vi
+                    qi = vi;
                     break;
                 }
             }
@@ -401,4 +379,4 @@ export const IO3 = {    // INPUT-OUTPUT
         const UA = UV.map(_ => "F");
         return [V, VV, EV, EA, EF, FV, FE, UV, FU, Vc, UA];
     },
-}
+};
